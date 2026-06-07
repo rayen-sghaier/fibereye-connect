@@ -706,7 +706,7 @@ function ProductCard({ product, index, settings }) {
       transition={{ duration: 0.45, delay: index * 0.04 }}
     >
       <div className="product-visual-wrap">
-        <div className="product-visual">
+        <div className={`product-visual ${product.image ? "has-product-image" : ""}`}>
           {product.image ? <img src={product.image} alt={product.name} /> : <Icon size={46} />}
         </div>
         <span className="product-ref">Réf. {formatProductRef(product, index)}</span>
