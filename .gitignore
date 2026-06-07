@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.npm-cache/
+.pw-browsers/
+qa/
+tmp/
+vite.*.log
+data/
+.env
