@@ -692,20 +692,24 @@ function ProductsSurface({ products, settings, isLoading, error, onRetry }) {
 function ProductCard({ product, index, settings }) {
   const Icon = productIcons[product.icon] || Router;
   const whatsappNumber = normalizePhone(settings.whatsappNumber);
+  const details = getProductDetails(product);
   const message = encodeURIComponent(
-    `Bonjour ${settings.brandName}, je veux commander : ${product.name}`
+    `Bonjour ${settings.brandName}, je veux commander : ${product.name}. Merci de me confirmer la disponibilité, les détails et la livraison.`
   );
 
   return (
     <motion.article
-      className="product-card"
+      className={`product-card ${index === 0 ? "featured-product" : ""}`}
       initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.22 }}
       transition={{ duration: 0.45, delay: index * 0.04 }}
     >
-      <div className="product-visual">
-        {product.image ? <img src={product.image} alt={product.name} /> : <Icon size={42} />}
+      <div className="product-visual-wrap">
+        <div className="product-visual">
+          {product.image ? <img src={product.image} alt={product.name} /> : <Icon size={46} />}
+        </div>
+        <span className="product-ref">Réf. {formatProductRef(product, index)}</span>
       </div>
       <div className="product-info">
         <div className="product-meta">
@@ -717,20 +721,125 @@ function ProductCard({ product, index, settings }) {
         </div>
         <h3>{product.name}</h3>
         <p>{product.description}</p>
+        <div className="product-detail-grid" aria-label={`Détails ${product.name}`}>
+          {details.specs.map((detail) => (
+            <span key={detail.label}>
+              <strong>{detail.value}</strong>
+              <small>{detail.label}</small>
+            </span>
+          ))}
+        </div>
+        <div className="product-support-line">
+          <ShieldCheck size={16} />
+          <span>{details.support}</span>
+        </div>
       </div>
       <div className="product-footer">
-        <strong>{product.price}</strong>
-        <a
-          href={`https://wa.me/${whatsappNumber}?text=${message}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Commander
-          <ArrowRight size={17} />
-        </a>
+        <div className="price-block">
+          <span>Prix</span>
+          <strong>{product.price}</strong>
+        </div>
+        <div className="product-actions">
+          <a
+            className="product-details-action"
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+              `Bonjour ${settings.brandName}, je veux plus de détails sur : ${product.name}`
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Détails
+          </a>
+          <a
+            className="product-order-action"
+            href={`https://wa.me/${whatsappNumber}?text=${message}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <MessageCircle size={17} />
+            Commander
+          </a>
+        </div>
       </div>
     </motion.article>
   );
+}
+
+function getProductDetails(product) {
+  const key = `${product.icon || ""} ${product.category || ""} ${product.name || ""}`.toLowerCase();
+
+  if (key.includes("camera") || key.includes("cctv")) {
+    return {
+      specs: [
+        { label: "Image", value: "2K / HD" },
+        { label: "Usage", value: "Sécurité" },
+        { label: "Accès", value: "Mobile" }
+      ],
+      support: "Conseil placement caméra, angle de vue et configuration application."
+    };
+  }
+
+  if (key.includes("gpon") || key.includes("ont") || key.includes("fibre")) {
+    return {
+      specs: [
+        { label: "Réseau", value: "Fibre" },
+        { label: "Signal", value: "Stable" },
+        { label: "Pose", value: "Propre" }
+      ],
+      support: "Vérification compatibilité ligne, signal et installation avec câblage propre."
+    };
+  }
+
+  if (key.includes("mesh") || key.includes("répéteur") || key.includes("repeteur") || key.includes("wifi")) {
+    return {
+      specs: [
+        { label: "Couverture", value: "Maison" },
+        { label: "Usage", value: "Wi-Fi" },
+        { label: "Setup", value: "Rapide" }
+      ],
+      support: "Aide au positionnement pour améliorer le signal dans les pièces faibles."
+    };
+  }
+
+  if (key.includes("casque") || key.includes("accessoire") || key.includes("headphone")) {
+    return {
+      specs: [
+        { label: "Type", value: "Sans fil" },
+        { label: "Usage", value: "Appels" },
+        { label: "Confort", value: "Pro" }
+      ],
+      support: "Confirmation disponibilité, couleur et compatibilité avant commande."
+    };
+  }
+
+  if (key.includes("service") || key.includes("pack") || key.includes("installation")) {
+    return {
+      specs: [
+        { label: "Service", value: "Sur site" },
+        { label: "Contrôle", value: "Signal" },
+        { label: "Finition", value: "Propre" }
+      ],
+      support: "Diagnostic, placement routeur et contrôle signal après installation."
+    };
+  }
+
+  return {
+    specs: [
+      { label: "Standard", value: "Wi-Fi 6" },
+      { label: "Usage", value: "Fibre" },
+      { label: "Profil", value: "Maison" }
+    ],
+    support: "Conseil avant achat, installation routeur et assistance WhatsApp."
+  };
+}
+
+function formatProductRef(product, index) {
+  const raw = product.id || product.name || `product-${index + 1}`;
+  return raw
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 14)
+    .toUpperCase();
 }
 
 function Footer({ settings, requestCount }) {
