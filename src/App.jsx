@@ -76,6 +76,66 @@ const defaultProducts = [
     description: "Surveillance claire avec accès à distance simple.",
     icon: "camera",
     image: ""
+  },
+  {
+    id: "repeteur-mesh",
+    name: "Répéteur Mesh AC1200",
+    category: "Signal",
+    price: "119 DT",
+    stock: "En stock",
+    description: "Améliore la couverture Wi-Fi dans toute la maison.",
+    icon: "wifi",
+    image: ""
+  },
+  {
+    id: "casque-pro",
+    name: "Casque sans fil Pro",
+    category: "Accessoires",
+    price: "89 DT",
+    stock: "En stock",
+    description: "Audio clair pour appels, support et usage quotidien.",
+    icon: "headphones",
+    image: ""
+  },
+  {
+    id: "pack-installation-fibre",
+    name: "Pack installation fibre",
+    category: "Service",
+    price: "70 DT",
+    stock: "Sur demande",
+    description: "Placement routeur, câbles propres et contrôle signal.",
+    icon: "map",
+    image: ""
+  },
+  {
+    id: "chargeur-vert-10dt",
+    name: "Chargeur vert compact",
+    category: "Accessoires",
+    price: "10 DT",
+    stock: "En stock",
+    description: "Chargeur pratique pour téléphone et accessoires du quotidien.",
+    icon: "charger",
+    image: ""
+  },
+  {
+    id: "chargeur-orange-20dt",
+    name: "Chargeur orange rapide",
+    category: "Accessoires",
+    price: "20 DT",
+    stock: "En stock",
+    description: "Chargeur finition orange, solide et adapté à un usage régulier.",
+    icon: "charger",
+    image: ""
+  },
+  {
+    id: "repeteur-wifi-70dt",
+    name: "Répéteur Wi-Fi",
+    category: "Signal",
+    price: "70 DT",
+    stock: "En stock",
+    description: "Répéteur Wi-Fi pour améliorer la couverture internet à la maison.",
+    icon: "wifi",
+    image: ""
   }
 ];
 
@@ -85,6 +145,7 @@ const productIcons = {
   router: Router,
   cable: Cable,
   camera: Camera,
+  charger: Zap,
   wifi: Wifi,
   headphones: Headphones,
   map: MapPinned
@@ -801,6 +862,17 @@ function getProductDetails(product) {
     };
   }
 
+  if (key.includes("chargeur") || key.includes("charger")) {
+    return {
+      specs: [
+        { label: "Type", value: "Chargeur" },
+        { label: "Usage", value: "Mobile" },
+        { label: "Format", value: "Compact" }
+      ],
+      support: "Confirmation disponibilité, couleur et compatibilité avant commande."
+    };
+  }
+
   if (key.includes("casque") || key.includes("accessoire") || key.includes("headphone")) {
     return {
       specs: [
@@ -1375,6 +1447,7 @@ function AdminPage({ publicSettings, onPublicSync }) {
                     <option value="router">Routeur</option>
                     <option value="cable">Fibre</option>
                     <option value="camera">Caméra</option>
+                    <option value="charger">Chargeur</option>
                     <option value="wifi">Wi-Fi</option>
                     <option value="headphones">Accessoire</option>
                     <option value="map">Service</option>

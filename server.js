@@ -105,6 +105,36 @@ const defaultProducts = [
     description: "Placement routeur, câbles propres et contrôle signal.",
     icon: "map",
     image: ""
+  },
+  {
+    id: "chargeur-vert-10dt",
+    name: "Chargeur vert compact",
+    category: "Accessoires",
+    price: "10 DT",
+    stock: "En stock",
+    description: "Chargeur pratique pour téléphone et accessoires du quotidien.",
+    icon: "charger",
+    image: ""
+  },
+  {
+    id: "chargeur-orange-20dt",
+    name: "Chargeur orange rapide",
+    category: "Accessoires",
+    price: "20 DT",
+    stock: "En stock",
+    description: "Chargeur finition orange, solide et adapté à un usage régulier.",
+    icon: "charger",
+    image: ""
+  },
+  {
+    id: "repeteur-wifi-70dt",
+    name: "Répéteur Wi-Fi",
+    category: "Signal",
+    price: "70 DT",
+    stock: "En stock",
+    description: "Répéteur Wi-Fi pour améliorer la couverture internet à la maison.",
+    icon: "wifi",
+    image: ""
   }
 ];
 
@@ -500,19 +530,36 @@ async function ensureDatabase() {
 
 async function normalizeDatabase(db) {
   const needsAdmin = !db.admin?.salt || !db.admin?.passwordHash;
+  const products = mergeDefaultProducts(
+    Array.isArray(db.products) && db.products.length
+      ? db.products.map((product) => cleanProduct(product))
+      : []
+  );
+
   return {
     version: 1,
     createdAt: db.createdAt || new Date().toISOString(),
     updatedAt: db.updatedAt || new Date().toISOString(),
     settings: cleanSettings({ ...defaultSettings, ...(db.settings || {}) }),
-    products: Array.isArray(db.products) && db.products.length
-      ? db.products.map((product) => cleanProduct(product))
-      : defaultProducts,
+    products,
     requests: Array.isArray(db.requests) ? db.requests : [],
     admin: needsAdmin
       ? await hashPassword(runtimeProcess.env.ADMIN_PASSWORD || "94239300")
       : db.admin
   };
+}
+
+function mergeDefaultProducts(products) {
+  const cleanDefaults = defaultProducts.map((product) => cleanProduct(product));
+  if (!products.length) {
+    return cleanDefaults;
+  }
+
+  const existingIds = new Set(products.map((product) => product.id));
+  return [
+    ...products,
+    ...cleanDefaults.filter((product) => !existingIds.has(product.id))
+  ];
 }
 
 async function saveDatabase(db) {
