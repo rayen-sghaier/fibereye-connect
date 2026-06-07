@@ -1,71 +1,48 @@
-# Déploiement réel
+# Deploy FIBEREYE CONNECT
 
-Le site est prêt pour un hébergement Node.js avec données persistantes.
+This project is configured for a free Render deploy without a credit card.
 
-## Option recommandée: Render
+## Free Render deploy
 
-1. Créez un compte Render.
-2. Mettez le projet dans GitHub.
-3. Créez un `Web Service`.
-4. Render détectera `render.yaml`.
-5. Ajoutez la variable secrète `ADMIN_PASSWORD`.
-6. Ajoutez votre domaine dans Render.
-7. Changez le DNS du domaine vers Render.
+1. Push the project to GitHub.
+2. Open Render and choose `New +`.
+3. Choose `Blueprint`.
+4. Select the GitHub repo `rayen-sghaier/fibereye-connect`.
+5. Render reads `render.yaml` automatically.
+6. Add `ADMIN_PASSWORD` when Render asks for it.
+7. Click deploy.
 
-Render fournit HTTPS automatiquement.
+The app will use:
 
-Important: le disque Render est configuré sur `/var/data`, donc les demandes, images et backups restent persistants.
+- Build command: `npm ci && npm run build`
+- Start command: `npm run start`
+- Health check: `/api/health`
+- Node version: `22.12.0`
 
-## Option VPS
+## Important free-plan limit
 
-Sur Ubuntu:
+The free Render service does not keep local file changes forever.
+
+That means admin uploads, request data, and product edits can be lost after restart, redeploy, or idle spin-down. It is good for testing and showing the website online, but not ideal for a real business backend.
+
+## Real production options
+
+For a stable real site, use one of these:
+
+- Render paid service with persistent disk.
+- VPS with a real disk.
+- A database/storage service such as Supabase for products, requests, and images.
+
+## Local run
 
 ```bash
-sudo apt update
-sudo apt install -y nodejs npm nginx
-git clone YOUR_REPO_URL fibereye-connect
-cd fibereye-connect
-npm ci
+npm install
 npm run build
-ADMIN_PASSWORD="votre-code-admin" NODE_ENV=production HOST=127.0.0.1 PORT=5174 npm run start
+npm run start
 ```
 
-Ensuite, mettez Nginx devant Node avec HTTPS.
+Open:
 
-Exemple Nginx:
+- Site: `http://127.0.0.1:5174/`
+- Admin: `http://127.0.0.1:5174/#fibereye-admin`
 
-```nginx
-server {
-  server_name votre-domaine.com;
-
-  location / {
-    proxy_pass http://127.0.0.1:5174;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
-```
-
-Puis installez SSL:
-
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d votre-domaine.com
-```
-
-## Données à sauvegarder
-
-Sauvegardez toujours:
-
-- `data/db.json`
-- `data/uploads`
-- `data/backups`
-
-Commande manuelle:
-
-```bash
-npm run backup
-```

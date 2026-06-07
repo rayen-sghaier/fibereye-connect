@@ -1,8 +1,8 @@
 # FIBEREYE CONNECT
 
-Site vitrine + boutique + dashboard admin sécurisé pour FIBEREYE CONNECT.
+Website + product boutique + secure admin dashboard for FIBEREYE CONNECT.
 
-## Lancement local
+## Local run
 
 ```bash
 npm install
@@ -10,66 +10,42 @@ npm run build
 npm run start
 ```
 
-Ouvrir ensuite:
+Open:
 
-- Site client: http://127.0.0.1:5174/
-- Admin: http://127.0.0.1:5174/#fibereye-admin
+- Client site: `http://127.0.0.1:5174/`
+- Admin: `http://127.0.0.1:5174/#fibereye-admin`
 
-Code admin par défaut: `94239300`
+Default admin code: `94239300`
 
-## Après installation
+## After installation
 
-1. Connectez-vous à l'admin.
-2. Allez dans `Paramètres`.
-3. Changez le `Nouveau code admin`.
-4. Ajoutez vos vrais produits avec images.
+1. Open the admin page.
+2. Go to settings.
+3. Change the admin code.
+4. Add real products and images.
 
-## Données
+## Data
 
-Les données réelles sont stockées dans:
+Local data is stored in:
 
-- `data/db.json`: produits, demandes, paramètres et code admin hashé.
-- `data/uploads`: images produits uploadées depuis l'admin.
-- `data/backups`: sauvegardes créées depuis l'admin ou le terminal.
+- `data/db.json`
+- `data/uploads`
+- `data/backups`
 
-Le dossier `data/` est ignoré par Git pour ne pas publier les demandes clients.
+The `data/` folder is ignored by Git so client requests and uploads are not published.
 
-## Réinitialiser le code admin
-
-Si le code admin est oublié:
+## Reset admin code
 
 ```bash
 npm run admin:reset -- 12345678
 ```
 
-Puis relancer le serveur.
+Then restart the server.
 
-## Export, backup et maintenance
+## Deployment
 
-Depuis l'admin, ouvrez `Backend` pour:
+See [DEPLOY.md](DEPLOY.md).
 
-- exporter les demandes clients en CSV;
-- créer un backup dans `data/backups`;
-- nettoyer les images uploadées qui ne sont plus utilisées par les produits.
+Current Render config is free and does not require a credit card, but admin data and uploaded images are temporary on the free plan.
 
-Depuis le terminal:
-
-```bash
-npm run backup
-```
-
-Le serveur expose aussi un endpoint de santé:
-
-```text
-GET /api/health
-```
-
-## Déploiement réel
-
-Voir [DEPLOY.md](DEPLOY.md).
-
-Fichiers prêts:
-
-- `render.yaml` pour Render avec disque persistant.
-- `Dockerfile` pour Docker/VPS.
-- `.env.example` pour les variables production.
+For real production with saved data/images, use a paid persistent disk, VPS, or Supabase-style database and storage.
