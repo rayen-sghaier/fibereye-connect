@@ -19,3 +19,15 @@ services:
         value: /tmp/fibereye-data
       - key: ADMIN_PASSWORD
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STATE_TABLE
+        value: fibereye_state
+      - key: SUPABASE_STATE_ID
+        value: main
+      - key: SUPABASE_BUCKET
+        value: fibereye-products

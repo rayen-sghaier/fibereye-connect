@@ -46,6 +46,6 @@ Then restart the server.
 
 See [DEPLOY.md](DEPLOY.md).
 
-Current Render config is free and does not require a credit card, but admin data and uploaded images are temporary on the free plan.
+Current Render config is free and does not require a credit card.
 
-For real production with saved data/images, use a paid persistent disk, VPS, or Supabase-style database and storage.
+For saved products, requests, settings, and uploaded images on the free plan, connect Supabase. See [SUPABASE_SETUP.md](SUPABASE_SETUP.md).

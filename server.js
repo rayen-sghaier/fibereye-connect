@@ -28,6 +28,16 @@ const dataDir = runtimeProcess.env.DATA_DIR
 const uploadsDir = resolve(dataDir, "uploads");
 const backupsDir = resolve(dataDir, "backups");
 const dbFile = resolve(dataDir, "db.json");
+const supabaseUrl = String(runtimeProcess.env.SUPABASE_URL || "").replace(/\/+$/, "");
+const supabaseServiceRoleKey = String(
+  runtimeProcess.env.SUPABASE_SECRET_KEY ||
+    runtimeProcess.env.SUPABASE_SERVICE_ROLE_KEY ||
+    runtimeProcess.env.SUPABASE_SERVICE_KEY ||
+    ""
+).trim();
+const supabaseStateTable = runtimeProcess.env.SUPABASE_STATE_TABLE || "fibereye_state";
+const supabaseBucket = runtimeProcess.env.SUPABASE_BUCKET || "fibereye-products";
+const supabaseStateId = runtimeProcess.env.SUPABASE_STATE_ID || "main";
 const sessionCookie = "fibereye_session";
 const sessionDurationMs = 8 * 60 * 60 * 1000;
 const maxLoginAttempts = 5;
@@ -143,6 +153,7 @@ const loginLocks = new Map();
 const rateLimits = new Map();
 const memoryUploads = new Map();
 let databaseCache;
+let databaseSource = "local";
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -217,6 +228,7 @@ async function routeApi(req, res, url) {
     sendJson(res, 200, {
       ok: true,
       service: "fibereye-connect",
+      storage: databaseSource,
       updatedAt: db.updatedAt,
       products: db.products.length,
       requests: db.requests.length
@@ -516,13 +528,34 @@ async function ensureDatabase() {
     return databaseCache;
   }
 
+  if (isSupabaseEnabled()) {
+    try {
+      const remoteDatabase = await loadSupabaseDatabase();
+      if (remoteDatabase) {
+        databaseCache = await normalizeDatabase(remoteDatabase);
+        databaseSource = "supabase";
+        return databaseCache;
+      }
+
+      databaseCache = await normalizeDatabase(await readLocalDatabaseSeed());
+      await saveSupabaseDatabase(databaseCache);
+      databaseSource = "supabase";
+      return databaseCache;
+    } catch (error) {
+      console.warn(`Supabase database unavailable, using local fallback: ${error.message}`);
+      databaseSource = "local";
+    }
+  }
+
   try {
     const raw = await readFile(dbFile, "utf8");
     const parsed = JSON.parse(raw);
     databaseCache = await normalizeDatabase(parsed);
+    databaseSource = "local";
   } catch {
     databaseCache = await normalizeDatabase({});
     await saveDatabase(databaseCache);
+    databaseSource = "local";
   }
 
   return databaseCache;
@@ -565,6 +598,18 @@ function mergeDefaultProducts(products) {
 async function saveDatabase(db) {
   db.updatedAt = new Date().toISOString();
   databaseCache = db;
+
+  if (isSupabaseEnabled()) {
+    try {
+      await saveSupabaseDatabase(db);
+      databaseSource = "supabase";
+      return;
+    } catch (error) {
+      console.warn(`Supabase save failed, using local fallback: ${error.message}`);
+      databaseSource = "local";
+    }
+  }
+
   await mkdir(dataDir, { recursive: true });
   const tmpFile = `${dbFile}.${runtimeProcess.pid}.${Date.now()}.tmp`;
   try {
@@ -576,6 +621,77 @@ async function saveDatabase(db) {
       return;
     }
     throw error;
+  }
+}
+
+async function readLocalDatabaseSeed() {
+  const raw = await readFile(dbFile, "utf8").catch(() => "");
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function isSupabaseEnabled() {
+  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+}
+
+async function loadSupabaseDatabase() {
+  const rows = await supabaseFetch(
+    `/rest/v1/${encodeURIComponent(supabaseStateTable)}?id=eq.${encodeURIComponent(
+      supabaseStateId
+    )}&select=data`,
+    { method: "GET" }
+  );
+  return Array.isArray(rows) && rows[0]?.data ? rows[0].data : null;
+}
+
+async function saveSupabaseDatabase(db) {
+  await supabaseFetch(
+    `/rest/v1/${encodeURIComponent(supabaseStateTable)}?on_conflict=id`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({
+        id: supabaseStateId,
+        data: db,
+        updated_at: db.updatedAt
+      })
+    }
+  );
+}
+
+async function supabaseFetch(path, options = {}) {
+  const response = await fetch(`${supabaseUrl}${path}`, {
+    ...options,
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      ...(options.headers || {})
+    }
+  });
+  const text = await response.text();
+  const data = parseOptionalJson(text);
+
+  if (!response.ok) {
+    const message = data?.message || data?.hint || data?.details || response.statusText;
+    throw new Error(message || `Supabase error ${response.status}`);
+  }
+
+  return data;
+}
+
+function parseOptionalJson(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
   }
 }
 
@@ -812,7 +928,7 @@ function isSameOriginRequest(req) {
 }
 
 function cleanIcon(icon) {
-  return ["router", "cable", "camera", "wifi", "headphones", "map"].includes(icon)
+  return ["router", "cable", "camera", "charger", "wifi", "headphones", "map"].includes(icon)
     ? icon
     : "router";
 }
@@ -820,7 +936,21 @@ function cleanIcon(icon) {
 function cleanImageUrl(image) {
   if (typeof image !== "string") return "";
   const trimmed = image.trim();
-  return trimmed.startsWith("/uploads/") ? trimmed : "";
+  return trimmed.startsWith("/uploads/") || isAllowedExternalImage(trimmed) ? trimmed : "";
+}
+
+function isAllowedExternalImage(value) {
+  if (!isSupabaseEnabled()) return false;
+  try {
+    const url = new URL(value);
+    const expected = new URL(supabaseUrl);
+    return (
+      url.origin === expected.origin &&
+      url.pathname.startsWith(`/storage/v1/object/public/${supabaseBucket}/`)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function cleanId(id) {
@@ -893,6 +1023,15 @@ async function saveUploadedImage(dataUrl) {
         ? "gif"
         : "jpg";
   const filename = `${Date.now()}-${randomBytes(8).toString("hex")}.${extension}`;
+
+  if (isSupabaseEnabled()) {
+    try {
+      return await saveSupabaseImage(filename, buffer, mime);
+    } catch (error) {
+      console.warn(`Supabase image upload failed, using local fallback: ${error.message}`);
+    }
+  }
+
   const filePath = resolve(uploadsDir, filename);
   try {
     await writeFile(filePath, buffer);
@@ -905,6 +1044,32 @@ async function saveUploadedImage(dataUrl) {
     throw error;
   }
   return `/uploads/${filename}`;
+}
+
+async function saveSupabaseImage(filename, buffer, mime) {
+  const objectPath = `products/${filename}`;
+  const response = await fetch(
+    `${supabaseUrl}/storage/v1/object/${encodeURIComponent(supabaseBucket)}/${objectPath}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseServiceRoleKey,
+        Authorization: `Bearer ${supabaseServiceRoleKey}`,
+        "Content-Type": mime,
+        "cache-control": "31536000",
+        "x-upsert": "false"
+      },
+      body: buffer
+    }
+  );
+  const text = await response.text();
+  const data = parseOptionalJson(text);
+
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || response.statusText);
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${objectPath}`;
 }
 
 function buildWhatsappLink(type, data, settings) {
@@ -1092,7 +1257,7 @@ function setSecurityHeaders(res) {
       "default-src 'self'",
       "script-src 'self'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data:",
+      "img-src 'self' data: https://*.supabase.co",
       "connect-src 'self'",
       "font-src 'self' data:",
       "base-uri 'self'",
