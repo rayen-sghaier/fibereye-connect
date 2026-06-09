@@ -148,6 +148,15 @@ const defaultProducts = [
   }
 ];
 
+const legacyDefaultProductIds = new Set([
+  "router-wifi-6",
+  "terminal-gpon-ont",
+  "camera-ip-2k",
+  "repeteur-mesh",
+  "casque-pro",
+  "pack-installation-fibre"
+]);
+
 const sessions = new Map();
 const loginLocks = new Map();
 const rateLimits = new Map();
@@ -585,14 +594,13 @@ async function normalizeDatabase(db) {
 function mergeDefaultProducts(products) {
   const cleanDefaults = defaultProducts.map((product) => cleanProduct(product));
   if (!products.length) {
-    return cleanDefaults;
+    return cleanDefaults.filter((product) => !legacyDefaultProductIds.has(product.id));
   }
 
-  const existingIds = new Set(products.map((product) => product.id));
-  return [
-    ...products,
-    ...cleanDefaults.filter((product) => !existingIds.has(product.id))
-  ];
+  const filteredProducts = products.filter((product) => !legacyDefaultProductIds.has(product.id));
+  return filteredProducts.length
+    ? filteredProducts
+    : cleanDefaults.filter((product) => !legacyDefaultProductIds.has(product.id));
 }
 
 async function saveDatabase(db) {

@@ -139,6 +139,19 @@ const defaultProducts = [
   }
 ];
 
+const legacyDefaultProductIds = new Set([
+  "router-wifi-6",
+  "terminal-gpon-ont",
+  "camera-ip-2k",
+  "repeteur-mesh",
+  "casque-pro",
+  "pack-installation-fibre"
+]);
+
+const fallbackProducts = defaultProducts.filter(
+  (product) => !legacyDefaultProductIds.has(product.id)
+);
+
 const providers = ["Topnet", "GlobalNet", "Tunisie Telecom"];
 
 const productIcons = {
@@ -209,7 +222,7 @@ function App() {
   const reduceMotion = useReducedMotion();
   const [route, setRoute] = useState(getRoute);
   const [settings, setSettings] = useState(defaultSettings);
-  const [products, setProducts] = useState(defaultProducts);
+  const [products, setProducts] = useState(fallbackProducts);
   const [requestCount, setRequestCount] = useState(0);
   const [isPublicLoading, setIsPublicLoading] = useState(true);
   const [publicError, setPublicError] = useState("");
