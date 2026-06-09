@@ -1261,19 +1261,6 @@ textarea:focus {
   font-size: 0.72rem;
 }
 
-.footer-stat {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  padding: 0 12px;
-  border: 1px solid rgba(36, 214, 255, 0.22);
-  border-radius: 999px;
-  background: #eefbff;
-  color: var(--blue);
-  font-size: 0.86rem;
-  font-weight: 900;
-}
-
 .admin-shell {
   min-height: 100vh;
   padding: 20px;

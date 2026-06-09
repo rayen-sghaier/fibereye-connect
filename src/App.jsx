@@ -468,7 +468,7 @@ function HomePage({
         </section>
       </main>
 
-      <Footer settings={settings} requestCount={requestCount} />
+      <Footer settings={settings} />
     </div>
   );
 }
@@ -927,7 +927,7 @@ function formatProductRef(product, index) {
     .toUpperCase();
 }
 
-function Footer({ settings, requestCount }) {
+function Footer({ settings }) {
   const whatsappNumber = normalizePhone(settings.whatsappNumber);
 
   return (
@@ -954,7 +954,6 @@ function Footer({ settings, requestCount }) {
           <SocialIcon type="facebook" />
           Facebook
         </a>
-        <span className="footer-stat">{requestCount} demandes</span>
       </div>
     </footer>
   );
